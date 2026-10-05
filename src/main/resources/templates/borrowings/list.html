@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Phiếu mượn · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <h1>Phiếu mượn</h1>
+            <p class="subtitle">Theo dõi trạng thái mượn, trả và phí phạt trả muộn</p>
+        </div>
+        <a th:href="@{/borrowings/new}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Lập phiếu mượn</a>
+    </div>
+
+    <div class="card">
+        <form class="filter-bar row g-2 align-items-end" th:action="@{/borrowings}" method="get">
+            <input type="hidden" name="memberId" th:if="${filter.memberId() != null}" th:value="${filter.memberId()}">
+            <div class="col-lg-3">
+                <label class="form-label" for="keyword">Thành viên</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="keyword" name="keyword" th:value="${filter.keyword()}"
+                           placeholder="Họ tên hoặc email...">
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label" for="status">Trạng thái</label>
+                <select class="form-select" id="status" name="status" data-auto-submit>
+                    <option value="">Tất cả</option>
+                    <option th:each="s : ${borrowingStatuses}" th:value="${s}" th:text="${s.label}"
+                            th:selected="${s == filter.status()}">Trạng thái</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label" for="fromDate">Mượn từ ngày</label>
+                <input type="date" class="form-control" id="fromDate" name="fromDate" th:value="${filter.fromDate()}">
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label" for="toDate">Đến ngày</label>
+                <input type="date" class="form-control" id="toDate" name="toDate" th:value="${filter.toDate()}">
+            </div>
+            <div class="col-sm-6 col-lg-auto">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="overdueOnly" name="overdueOnly" value="true"
+                           th:checked="${filter.overdueOnly()}" data-auto-submit>
+                    <label class="form-check-label" for="overdueOnly">Chỉ phiếu quá hạn</label>
+                </div>
+            </div>
+            <div class="col-lg-auto">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                <a th:href="@{/borrowings}" class="btn btn-light">Xóa lọc</a>
+            </div>
+        </form>
+
+        <div th:if="${filterMember != null}" class="px-3 pb-2">
+            <span class="badge text-bg-primary-soft">
+                <i class="bi bi-person me-1"></i>Thành viên: <span th:text="${filterMember.fullName}">Tên</span>
+                <a th:href="@{/borrowings(keyword=${filter.keyword()}, status=${filter.status()})}" class="ms-1 text-reset" title="Bỏ lọc thành viên">
+                    <i class="bi bi-x"></i>
+                </a>
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" th:if="${page.hasContent()}">
+                <thead>
+                <tr>
+                    <th><a th:replace="~{fragments/common :: sortLink('id', 'Phiếu')}"></a></th>
+                    <th>Thành viên</th>
+                    <th><a th:replace="~{fragments/common :: sortLink('borrowDate', 'Ngày mượn')}"></a></th>
+                    <th><a th:replace="~{fragments/common :: sortLink('dueDate', 'Hạn trả')}"></a></th>
+                    <th class="text-center">Đã trả</th>
+                    <th class="text-end"><a th:replace="~{fragments/common :: sortLink('totalFineAmount', 'Phí phạt')}"></a></th>
+                    <th class="text-end"><a th:replace="~{fragments/common :: sortLink('unpaidFineAmount', 'Còn nợ')}"></a></th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="b : ${page.content}">
+                    <td><a th:href="@{/borrowings/{id}(id=${b.id})}" class="cell-title" th:text="'#' + ${b.id}">#1</a></td>
+                    <td>
+                        <a th:href="@{/members/{id}(id=${b.memberId})}" class="cell-title" th:text="${b.memberName}">Tên</a>
+                        <div class="cell-sub" th:text="${b.memberEmail}">email</div>
+                    </td>
+                    <td th:text="${#temporals.format(b.borrowDate, 'dd/MM/yyyy')}"></td>
+                    <td>
+                        <span th:text="${#temporals.format(b.dueDate, 'dd/MM/yyyy')}"></span>
+                        <div class="cell-sub text-danger" th:if="${b.overdueDays > 0}" th:text="'Quá ' + ${b.overdueDays} + ' ngày'"></div>
+                    </td>
+                    <td class="text-center" th:text="${b.returnedQuantity} + '/' + ${b.totalQuantity}">0/2</td>
+                    <td class="text-end">
+                        <span th:classappend="${b.totalFineAmount.signum() > 0} ? 'fw-semibold'"
+                              th:text="${#numbers.formatDecimal(b.totalFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</span>
+                        <div class="cell-sub text-warning-emphasis" th:if="${b.pendingFine != null and b.pendingFine.signum() > 0}"
+                             th:text="'+ ' + ${#numbers.formatDecimal(b.pendingFine, 1, 'POINT', 0, 'COMMA')} + ' đ dự kiến'"></div>
+                    </td>
+                    <td class="text-end">
+                        <span th:classappend="${b.hasUnpaidFine()} ? 'text-danger fw-semibold' : 'text-body-tertiary'"
+                              th:text="${#numbers.formatDecimal(b.unpaidFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</span>
+                    </td>
+                    <td><span th:replace="~{fragments/common :: borrowingStatus(${b.status})}"></span></td>
+                    <td class="text-end text-nowrap">
+                        <a th:href="@{/borrowings/{id}(id=${b.id})}" class="btn btn-sm btn-light" title="Chi tiết"><i class="bi bi-eye"></i></a>
+                        <a th:if="${b.open}" th:href="@{/borrowings/{id}/return(id=${b.id})}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-box-arrow-in-left me-1"></i>Trả
+                        </a>
+                        <a th:if="${b.hasUnpaidFine()}" th:href="@{/borrowings/{id}/payments/new(id=${b.id})}" class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-cash-stack me-1"></i>Thu phí
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <th:block th:unless="${page.hasContent()}">
+                <div th:replace="~{fragments/common :: empty('Không có phiếu mượn nào phù hợp')}"></div>
+            </th:block>
+        </div>
+        <div th:replace="~{fragments/common :: pagination(${page})}"></div>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,61 @@
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: library-management
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/library_db?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 50
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  thymeleaf:
+    cache: false
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 100
+  mvc:
+    format:
+      date: yyyy-MM-dd
+
+app:
+  borrowing:
+    default-loan-days: 14
+    max-books-per-member: 5
+    # Chỉ dùng khi chưa có chính sách phí nào active (mức phí thật cấu hình tại /fine-policies)
+    default-fine-per-day: 5000
+  overdue-job:
+    cron: "0 5 0 * * *"
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
+  paths-to-match: /api/**
+
+logging:
+  level:
+    com.example.library: INFO

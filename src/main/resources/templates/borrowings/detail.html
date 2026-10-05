@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Chi tiết phiếu mượn · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/borrowings}">Phiếu mượn</a></li>
+                    <li class="breadcrumb-item active" th:text="'#' + ${borrowing.id}">#1</li>
+                </ol>
+            </nav>
+            <h1 class="d-flex align-items-center gap-3">
+                <span th:text="'Phiếu mượn #' + ${borrowing.id}">Phiếu mượn #1</span>
+                <span th:replace="~{fragments/common :: borrowingStatus(${borrowing.status})}"></span>
+            </h1>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <th:block th:if="${borrowing.open}">
+                <a th:href="@{/borrowings/{id}/return(id=${borrowing.id})}" class="btn btn-outline-primary">
+                    <i class="bi bi-box-arrow-in-left me-1"></i>Trả sách
+                </a>
+                <form th:action="@{/borrowings/{id}/return-all(id=${borrowing.id})}" method="post"
+                      data-confirm="Xác nhận trả toàn bộ sách còn lại của phiếu này vào hôm nay?">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2-all me-1"></i>Trả toàn bộ</button>
+                </form>
+            </th:block>
+            <th:block th:if="${borrowing.hasUnpaidFine()}">
+                <a th:href="@{/borrowings/{id}/payments/new(id=${borrowing.id})}" class="btn btn-success">
+                    <i class="bi bi-cash-stack me-1"></i>Thanh toán phí
+                </a>
+                <a th:href="@{/borrowings/{id}/waivers/new(id=${borrowing.id})}" class="btn btn-outline-secondary">
+                    <i class="bi bi-hand-thumbs-up me-1"></i>Miễn giảm
+                </a>
+            </th:block>
+            <button th:if="${borrowing.cancellable}" type="button" class="btn btn-outline-danger"
+                    data-bs-toggle="collapse" data-bs-target="#cancel-panel" aria-expanded="false">
+                <i class="bi bi-x-circle me-1"></i>Hủy phiếu
+            </button>
+        </div>
+    </div>
+
+    <div th:if="${borrowing.cancellable}" class="collapse mb-3" id="cancel-panel">
+        <div class="card border-danger-subtle">
+            <div class="card-body">
+                <form th:action="@{/borrowings/{id}/cancel(id=${borrowing.id})}" th:object="${cancelForm}" method="post"
+                      class="row g-2 align-items-end" data-confirm="Hủy phiếu sẽ hoàn lại toàn bộ tồn kho. Tiếp tục?">
+                    <div class="col-md-9">
+                        <label for="cancel-reason" class="form-label">Lý do hủy <span class="text-danger">*</span></label>
+                        <input type="text" id="cancel-reason" th:field="*{reason}" class="form-control" maxlength="255" required
+                               placeholder="VD: Lập nhầm thành viên, thành viên đổi ý không mượn...">
+                        <div class="form-text">Chỉ hủy được khi phiếu chưa trả cuốn nào và chưa phát sinh phí phạt.</div>
+                    </div>
+                    <div class="col-md-3 d-grid">
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-x-octagon me-1"></i>Xác nhận hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${borrowing.cancelled}" class="alert alert-secondary d-flex gap-2 align-items-center">
+        <i class="bi bi-x-circle-fill fs-5"></i>
+        <div>
+            Phiếu đã bị hủy ngày
+            <strong th:text="${#temporals.format(borrowing.cancelledDate, 'dd/MM/yyyy')}">01/01/2026</strong>.
+            Lý do: <em th:text="${borrowing.cancelReason} ?: '—'">Lý do</em>
+        </div>
+    </div>
+
+    <div th:if="${borrowing.open and borrowing.overdueDays > 0}" class="alert alert-danger d-flex gap-2 align-items-center">
+        <i class="bi bi-alarm-fill fs-5"></i>
+        <div>
+            Phiếu đã quá hạn <strong th:text="${borrowing.overdueDays}">3</strong> ngày.
+            Nếu trả nốt <strong th:text="${borrowing.remainingQuantity}">1</strong> cuốn còn lại hôm nay, phí phát sinh thêm là
+            <strong th:replace="~{fragments/common :: money(${borrowing.pendingFine})}">15.000 đ</strong>
+            theo chính sách <em th:text="${finePolicy.name}">2026</em>.
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card h-100">
+                <div>
+                    <div class="stat-label">Tổng phí phạt</div>
+                    <div class="stat-value fs-4" th:text="${#numbers.formatDecimal(borrowing.totalFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card h-100">
+                <div>
+                    <div class="stat-label">Đã thanh toán</div>
+                    <div class="stat-value fs-4 text-success" th:text="${#numbers.formatDecimal(borrowing.paidFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card h-100">
+                <div>
+                    <div class="stat-label">Đã miễn giảm</div>
+                    <div class="stat-value fs-4 text-secondary" th:text="${#numbers.formatDecimal(borrowing.waivedFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card h-100" th:classappend="${borrowing.hasUnpaidFine()} ? 'border-danger-subtle'">
+                <div>
+                    <div class="stat-label">Còn phải thu</div>
+                    <div class="stat-value fs-4" th:classappend="${borrowing.hasUnpaidFine()} ? 'text-danger' : 'text-success'"
+                         th:text="${#numbers.formatDecimal(borrowing.unpaidFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">Thông tin phiếu</div>
+                <div class="card-body">
+                    <dl class="info-list mb-0">
+                        <dt>Thành viên</dt>
+                        <dd>
+                            <a th:href="@{/members/{id}(id=${borrowing.memberId})}" th:text="${borrowing.memberName}">Tên</a>
+                            <div class="cell-sub fw-normal" th:text="${borrowing.memberEmail}">email</div>
+                        </dd>
+                        <dt>Ngày mượn</dt>
+                        <dd th:text="${#temporals.format(borrowing.borrowDate, 'dd/MM/yyyy')}"></dd>
+                        <dt>Hạn trả</dt>
+                        <dd th:text="${#temporals.format(borrowing.dueDate, 'dd/MM/yyyy')}"></dd>
+                        <dt>Ngày trả hết</dt>
+                        <dd th:text="${borrowing.returnedDate != null} ? ${#temporals.format(borrowing.returnedDate, 'dd/MM/yyyy')} : '—'"></dd>
+                        <dt>Tiến độ trả</dt>
+                        <dd>
+                            <span th:text="${borrowing.returnedQuantity + ' / ' + borrowing.totalQuantity + ' cuốn'}">0 / 2 cuốn</span>
+                        </dd>
+                        <dt>Ghi chú</dt>
+                        <dd class="fw-normal" th:text="${borrowing.note} ?: '—'"></dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span><i class="bi bi-journals me-2"></i>Sách trong phiếu</span>
+                    <span class="text-body-secondary small">
+                        Đã trả <strong th:text="${borrowing.returnedQuantity}">0</strong> / <span th:text="${borrowing.totalQuantity}">2</span> cuốn
+                    </span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Sách</th>
+                            <th class="text-center">Mượn</th>
+                            <th class="text-center">Đã trả</th>
+                            <th class="text-center">Còn lại</th>
+                            <th>Trả lần cuối</th>
+                            <th class="text-center">Ngày trễ</th>
+                            <th class="text-end">Phí đã tính</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="d : ${borrowing.details}">
+                            <td>
+                                <a th:href="@{/books/{id}(id=${d.bookId})}" class="cell-title" th:text="${d.bookTitle}">Sách</a>
+                                <div class="cell-sub"><span class="mono" th:text="${d.isbn}"></span> · <span th:text="${d.author}"></span></div>
+                            </td>
+                            <td class="text-center" th:text="${d.quantity}">1</td>
+                            <td class="text-center" th:text="${d.returnedQuantity}">0</td>
+                            <td class="text-center">
+                                <span th:if="${d.fullyReturned}" class="badge text-bg-success-soft"><i class="bi bi-check2"></i> Đủ</span>
+                                <span th:unless="${d.fullyReturned}" class="badge text-bg-warning-soft" th:text="${d.remainingQuantity}">1</span>
+                            </td>
+                            <td th:text="${d.lastReturnedDate != null} ? ${#temporals.format(d.lastReturnedDate, 'dd/MM/yyyy')} : '—'"></td>
+                            <td class="text-center" th:text="${d.lateDays > 0} ? ${d.lateDays} : '—'">0</td>
+                            <td class="text-end">
+                                <span th:classappend="${d.fineAmount.signum() > 0} ? 'text-danger fw-semibold'"
+                                      th:text="${#numbers.formatDecimal(d.fineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</span>
+                                <div th:if="${d.pendingFine != null and d.pendingFine.signum() > 0}" class="cell-sub text-warning-emphasis">
+                                    + <span th:text="${#numbers.formatDecimal(d.pendingFine, 1, 'POINT', 0, 'COMMA')}">0</span> đ nếu trả hôm nay
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-receipt me-2"></i>Lịch sử thanh toán</span>
+                    <a th:if="${borrowing.hasUnpaidFine()}" th:href="@{/borrowings/{id}/payments/new(id=${borrowing.id})}"
+                       class="btn btn-sm btn-outline-success"><i class="bi bi-plus-lg me-1"></i>Ghi nhận thanh toán</a>
+                </div>
+                <div class="table-responsive" th:unless="${#lists.isEmpty(borrowing.payments)}">
+                    <table class="table mb-0">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Ngày</th>
+                            <th>Hình thức</th>
+                            <th>Ghi chú</th>
+                            <th class="text-end">Số tiền</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p : ${borrowing.payments}">
+                            <td class="mono" th:text="${p.id}">1</td>
+                            <td th:text="${#temporals.format(p.paymentDate, 'dd/MM/yyyy')}">01/01/2026</td>
+                            <td th:text="${p.method.label}">Tiền mặt</td>
+                            <td class="text-body-secondary" th:text="${p.note} ?: '—'">—</td>
+                            <td class="text-end fw-semibold text-success"
+                                th:text="${#numbers.formatDecimal(p.amount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${#lists.isEmpty(borrowing.payments)}" class="card-body text-body-secondary small">
+                    Chưa có lần thanh toán nào.
+                </div>
+            </div>
+
+            <div class="card mt-3" th:unless="${#lists.isEmpty(borrowing.waivers)}">
+                <div class="card-header"><i class="bi bi-hand-thumbs-up me-2"></i>Miễn giảm phí</div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                        <tr>
+                            <th>Ngày duyệt</th>
+                            <th>Người duyệt</th>
+                            <th>Lý do</th>
+                            <th class="text-end">Số tiền</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="w : ${borrowing.waivers}">
+                            <td th:text="${#temporals.format(w.approvedDate, 'dd/MM/yyyy')}">01/01/2026</td>
+                            <td th:text="${w.approvedBy}">Thủ thư</td>
+                            <td th:text="${w.reason}">Lý do</td>
+                            <td class="text-end fw-semibold"
+                                th:text="${#numbers.formatDecimal(w.amount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

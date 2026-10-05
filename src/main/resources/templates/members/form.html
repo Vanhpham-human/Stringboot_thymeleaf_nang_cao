@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Thành viên · LibraryHub</title>
+</head>
+<body>
+<main th:with="isNew=${memberForm.id == null}">
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/members}">Thành viên</a></li>
+                    <li class="breadcrumb-item active" th:text="${isNew} ? 'Thêm mới' : 'Chỉnh sửa'">Thêm mới</li>
+                </ol>
+            </nav>
+            <h1 th:text="${isNew} ? 'Thêm thành viên' : 'Sửa thông tin thành viên'">Thêm thành viên</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-body p-4">
+                    <form th:object="${memberForm}" method="post" novalidate
+                          th:action="${isNew} ? @{/members} : @{/members/{id}(id=${memberForm.id})}">
+                        <div th:replace="~{fragments/common :: globalErrors}"></div>
+
+                        <div class="mb-3">
+                            <label for="fullName" class="form-label required">Họ và tên</label>
+                            <input type="text" class="form-control" th:field="*{fullName}" th:errorclass="is-invalid"
+                                   placeholder="Nguyễn Văn A" maxlength="150">
+                            <div class="invalid-feedback" th:errors="*{fullName}">Lỗi</div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-7">
+                                <label for="email" class="form-label required">Email</label>
+                                <input type="email" class="form-control" th:field="*{email}" th:errorclass="is-invalid"
+                                       placeholder="ten@example.com" maxlength="150">
+                                <div class="invalid-feedback" th:errors="*{email}">Lỗi</div>
+                            </div>
+                            <div class="col-md-5">
+                                <label for="phone" class="form-label">Số điện thoại</label>
+                                <input type="text" class="form-control" th:field="*{phone}" th:errorclass="is-invalid"
+                                       placeholder="0912345678" maxlength="20">
+                                <div class="invalid-feedback" th:errors="*{phone}">Lỗi</div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label required d-block">Trạng thái</label>
+                            <div class="form-check form-check-inline" th:each="s : ${memberStatuses}">
+                                <input class="form-check-input" type="radio" th:field="*{status}" th:value="${s}">
+                                <label class="form-check-label" th:for="${#ids.prev('status')}" th:text="${s.label}">ACTIVE</label>
+                            </div>
+                            <div class="text-danger small" th:errors="*{status}">Lỗi</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Lưu</button>
+                            <a th:href="@{/members}" class="btn btn-light">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

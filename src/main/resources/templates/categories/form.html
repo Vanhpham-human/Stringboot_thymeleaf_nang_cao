@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Thể loại · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/categories}">Thể loại</a></li>
+                    <li class="breadcrumb-item active" th:text="${categoryForm.id == null} ? 'Thêm mới' : 'Chỉnh sửa'">Thêm mới</li>
+                </ol>
+            </nav>
+            <h1 th:text="${categoryForm.id == null} ? 'Thêm thể loại' : 'Sửa thể loại'">Thêm thể loại</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-body p-4">
+                    <form th:object="${categoryForm}" method="post" novalidate
+                          th:action="${categoryForm.id == null} ? @{/categories} : @{/categories/{id}(id=${categoryForm.id})}">
+                        <div th:replace="~{fragments/common :: globalErrors}"></div>
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label required">Tên thể loại</label>
+                            <input type="text" class="form-control" th:field="*{name}" th:errorclass="is-invalid"
+                                   placeholder="VD: Công nghệ thông tin" maxlength="100" autofocus>
+                            <div class="invalid-feedback" th:errors="*{name}">Lỗi</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="description" class="form-label">Mô tả</label>
+                            <textarea class="form-control" th:field="*{description}" th:errorclass="is-invalid" rows="4"
+                                      maxlength="500" placeholder="Mô tả ngắn về thể loại"></textarea>
+                            <div class="invalid-feedback" th:errors="*{description}">Lỗi</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Lưu</button>
+                            <a th:href="@{/categories}" class="btn btn-light">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::script})}">
+<head>
+    <title>Lập phiếu mượn · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/borrowings}">Phiếu mượn</a></li>
+                    <li class="breadcrumb-item active">Lập phiếu mới</li>
+                </ol>
+            </nav>
+            <h1>Lập phiếu mượn</h1>
+            <p class="subtitle">Một phiếu có thể mượn nhiều đầu sách. Hạn trả mặc định
+                <strong th:text="${defaultLoanDays}">14</strong> ngày kể từ ngày mượn.</p>
+        </div>
+    </div>
+
+    <div class="alert alert-light border small d-flex gap-2">
+        <i class="bi bi-shield-check text-primary mt-1"></i>
+        <div>
+            <strong>Quy tắc mượn:</strong>
+            mỗi thành viên giữ tối đa <strong th:text="${maxBooksPerMember}">5</strong> cuốn chưa trả ·
+            không cho mượn khi thành viên bị khóa, đang có phiếu quá hạn hoặc còn nợ phí phạt ·
+            mỗi đầu sách chỉ xuất hiện một lần trong phiếu · số lượng không vượt tồn kho.
+            Nếu một dòng không hợp lệ, toàn bộ phiếu sẽ không được tạo.
+        </div>
+    </div>
+
+    <form th:object="${borrowingForm}" th:action="@{/borrowings}" method="post" novalidate id="borrowing-form"
+          th:data-loan-days="${defaultLoanDays}" th:data-max-books="${maxBooksPerMember}">
+        <div th:replace="~{fragments/common :: globalErrors}"></div>
+
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header"><i class="bi bi-person me-2"></i>Thông tin phiếu</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="memberId" class="form-label required">Thành viên</label>
+                            <select class="form-select" th:field="*{memberId}" th:errorclass="is-invalid">
+                                <option value="">-- Chọn thành viên --</option>
+                                <option th:each="m : ${members}" th:value="${m.id}"
+                                        th:text="${m.fullName} + ' (' + ${m.email} + ')'">Tên</option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{memberId}">Lỗi</div>
+                            <div class="form-text">Chỉ hiển thị thành viên đang hoạt động.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="borrowDate" class="form-label required">Ngày mượn</label>
+                            <input type="date" class="form-control" th:field="*{borrowDate}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{borrowDate}">Lỗi</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="dueDate" class="form-label">Hạn trả</label>
+                            <input type="date" class="form-control" th:field="*{dueDate}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{dueDate}">Lỗi</div>
+                            <div class="form-text">Để trống để tự tính = ngày mượn + <span th:text="${defaultLoanDays}">14</span> ngày.</div>
+                        </div>
+                        <div>
+                            <label for="note" class="form-label">Ghi chú</label>
+                            <textarea class="form-control" th:field="*{note}" th:errorclass="is-invalid" rows="3" maxlength="500"></textarea>
+                            <div class="invalid-feedback" th:errors="*{note}">Lỗi</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-journals me-2"></i>Sách mượn</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-item">
+                            <i class="bi bi-plus-lg me-1"></i>Thêm sách
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-danger py-2" th:if="${#fields.hasErrors('items')}" th:errors="*{items}">Lỗi</div>
+
+                        <div id="items">
+                            <div class="item-row" th:each="item, s : *{items}">
+                                <div class="row g-2 align-items-start">
+                                    <div class="col-md-8">
+                                        <label class="form-label small">Sách</label>
+                                        <select class="form-select book-select" th:field="*{items[__${s.index}__].bookId}"
+                                                th:errorclass="is-invalid">
+                                            <option value="">-- Chọn sách --</option>
+                                            <option th:each="b : ${books}" th:value="${b.id}" th:data-available="${b.availableQuantity}"
+                                                    th:text="${b.title} + ' · ' + ${b.author} + ' (còn ' + ${b.availableQuantity} + ')'">Sách</option>
+                                        </select>
+                                        <div class="invalid-feedback" th:errors="*{items[__${s.index}__].bookId}">Lỗi</div>
+                                    </div>
+                                    <div class="col-8 col-md-3">
+                                        <label class="form-label small">Số lượng</label>
+                                        <input type="number" min="1" max="10" class="form-control qty-input"
+                                               th:field="*{items[__${s.index}__].quantity}" th:errorclass="is-invalid">
+                                        <div class="invalid-feedback" th:errors="*{items[__${s.index}__].quantity}">Lỗi</div>
+                                        <div class="form-text stock-hint"></div>
+                                    </div>
+                                    <div class="col-4 col-md-1 d-flex align-items-end" style="padding-top: 1.85rem">
+                                        <button type="button" class="btn btn-light text-danger remove-item w-100" title="Bỏ dòng">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <template id="item-template">
+                            <div class="item-row">
+                                <div class="row g-2 align-items-start">
+                                    <div class="col-md-8">
+                                        <label class="form-label small">Sách</label>
+                                        <select class="form-select book-select" name="items[__INDEX__].bookId" id="items__INDEX__.bookId">
+                                            <option value="">-- Chọn sách --</option>
+                                            <option th:each="b : ${books}" th:value="${b.id}" th:data-available="${b.availableQuantity}"
+                                                    th:text="${b.title} + ' · ' + ${b.author} + ' (còn ' + ${b.availableQuantity} + ')'">Sách</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-8 col-md-3">
+                                        <label class="form-label small">Số lượng</label>
+                                        <input type="number" min="1" max="10" value="1" class="form-control qty-input"
+                                               name="items[__INDEX__].quantity" id="items__INDEX__.quantity">
+                                        <div class="form-text stock-hint"></div>
+                                    </div>
+                                    <div class="col-4 col-md-1 d-flex align-items-end" style="padding-top: 1.85rem">
+                                        <button type="button" class="btn btn-light text-danger remove-item w-100" title="Bỏ dòng">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="card-footer bg-transparent d-flex justify-content-between align-items-center py-3">
+                        <div class="small text-body-secondary">
+                            Tổng: <strong id="total-books">0</strong> / <span th:text="${maxBooksPerMember}">5</span> cuốn
+                            <span id="duplicate-warning" class="text-danger ms-2 d-none">
+                                <i class="bi bi-exclamation-triangle"></i> Có sách bị chọn trùng
+                            </span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a th:href="@{/borrowings}" class="btn btn-light">Hủy</a>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Tạo phiếu mượn</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</main>
+
+<script>
+    (() => {
+        const form = document.getElementById('borrowing-form');
+        const container = document.getElementById('items');
+        const template = document.getElementById('item-template');
+        const loanDays = parseInt(form.dataset.loanDays || '14', 10);
+        const borrowDate = document.getElementById('borrowDate');
+        const dueDate = document.getElementById('dueDate');
+        let dueDateTouched = false;
+
+        const reindex = () => {
+            container.querySelectorAll('.item-row').forEach((row, index) => {
+                row.querySelectorAll('[name]').forEach(el => {
+                    el.name = el.name.replace(/items\[\d+]/, `items[${index}]`);
+                    el.id = el.id.replace(/items\d+/, `items${index}`);
+                });
+            });
+            container.querySelectorAll('.remove-item').forEach(btn => {
+                btn.disabled = container.querySelectorAll('.item-row').length === 1;
+            });
+            updateSummary();
+        };
+
+        const maxBooks = parseInt(form.dataset.maxBooks || '5', 10);
+
+        const updateSummary = () => {
+            let total = 0;
+            const seen = new Set();
+            let duplicate = false;
+            container.querySelectorAll('.item-row').forEach(row => {
+                const select = row.querySelector('.book-select');
+                const isDuplicate = select.value !== '' && seen.has(select.value);
+                if (isDuplicate) {
+                    select.classList.add('is-invalid');
+                    select.dataset.duplicate = 'true';
+                } else if (select.dataset.duplicate) {
+                    select.classList.remove('is-invalid');
+                    delete select.dataset.duplicate;
+                }
+                duplicate ||= isDuplicate;
+                if (select.value !== '') seen.add(select.value);
+                const qty = row.querySelector('.qty-input');
+                const hint = row.querySelector('.stock-hint');
+                const option = select.selectedOptions[0];
+                const available = option && option.dataset.available ? parseInt(option.dataset.available, 10) : null;
+                const quantity = parseInt(qty.value || '0', 10);
+                total += isNaN(quantity) ? 0 : quantity;
+                if (available === null) {
+                    hint.textContent = '';
+                    hint.classList.remove('text-danger');
+                } else {
+                    qty.max = Math.min(10, available);
+                    hint.textContent = quantity > available ? `Chỉ còn ${available} cuốn` : `Còn ${available} cuốn`;
+                    hint.classList.toggle('text-danger', quantity > available);
+                }
+            });
+            const totalEl = document.getElementById('total-books');
+            totalEl.textContent = total;
+            totalEl.classList.toggle('text-danger', total > maxBooks);
+            document.getElementById('duplicate-warning').classList.toggle('d-none', !duplicate);
+        };
+
+        document.getElementById('add-item').addEventListener('click', () => {
+            const index = container.querySelectorAll('.item-row').length;
+            const html = template.innerHTML.replaceAll('__INDEX__', index);
+            container.insertAdjacentHTML('beforeend', html);
+            reindex();
+        });
+
+        container.addEventListener('click', event => {
+            const btn = event.target.closest('.remove-item');
+            if (btn && container.querySelectorAll('.item-row').length > 1) {
+                btn.closest('.item-row').remove();
+                reindex();
+            }
+        });
+        container.addEventListener('change', updateSummary);
+        container.addEventListener('input', updateSummary);
+
+        dueDate.addEventListener('input', () => dueDateTouched = true);
+        borrowDate.addEventListener('change', () => {
+            if (dueDateTouched || !borrowDate.value) {
+                return;
+            }
+            const date = new Date(borrowDate.value + 'T00:00:00');
+            date.setDate(date.getDate() + loanDays);
+            const pad = n => String(n).padStart(2, '0');
+            dueDate.value = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        });
+
+        reindex();
+    })();
+</script>
+</body>
+</html>

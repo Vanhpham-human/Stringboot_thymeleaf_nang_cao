@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Chi tiết thành viên · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/members}">Thành viên</a></li>
+                    <li class="breadcrumb-item active" th:text="${member.fullName}">Tên</li>
+                </ol>
+            </nav>
+            <h1>Hồ sơ thành viên</h1>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:if="${summary.canBorrow()}" th:href="@{/borrowings/new(memberId=${member.id})}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Lập phiếu mượn
+            </a>
+            <a th:href="@{/members/{id}/edit(id=${member.id})}" class="btn btn-outline-primary"><i class="bi bi-pencil me-1"></i>Sửa</a>
+            <form th:if="${member.status.name() == 'ACTIVE'}" th:action="@{/members/{id}/block(id=${member.id})}" method="post"
+                  th:data-confirm="|Khóa thành viên ${member.fullName}?|">
+                <input type="hidden" name="redirect" th:value="@{/members/{id}(id=${member.id})}">
+                <button type="submit" class="btn btn-outline-danger"><i class="bi bi-lock me-1"></i>Khóa</button>
+            </form>
+            <form th:unless="${member.status.name() == 'ACTIVE'}" th:action="@{/members/{id}/unblock(id=${member.id})}" method="post">
+                <input type="hidden" name="redirect" th:value="@{/members/{id}(id=${member.id})}">
+                <button type="submit" class="btn btn-outline-success"><i class="bi bi-unlock me-1"></i>Mở khóa</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body text-center p-4">
+                    <span class="avatar avatar-lg mx-auto mb-3"
+                          th:text="${#strings.substring(member.fullName, member.fullName.lastIndexOf(' ') + 1, member.fullName.lastIndexOf(' ') + 2)}">A</span>
+                    <h5 class="mb-1" th:text="${member.fullName}">Tên</h5>
+                    <div class="text-body-secondary mb-3" th:text="${member.email}">email</div>
+                    <span th:replace="~{fragments/common :: memberStatus(${member.status})}"></span>
+                </div>
+                <div class="card-body border-top">
+                    <dl class="info-list mb-0">
+                        <dt>Số điện thoại</dt>
+                        <dd th:text="${member.phone} ?: '—'">0912</dd>
+                        <dt>Ngày tham gia</dt>
+                        <dd th:text="${#temporals.format(member.createdAt, 'dd/MM/yyyy')}"></dd>
+                        <dt>Tổng số phiếu mượn</dt>
+                        <dd th:text="${page.totalElements}">3</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clipboard-check me-2"></i>Điều kiện mượn</span>
+                    <span th:if="${summary.canBorrow()}" class="badge text-bg-success-soft">Được mượn</span>
+                    <span th:unless="${summary.canBorrow()}" class="badge text-bg-danger-soft">Tạm chặn</span>
+                </div>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Đang giữ</span>
+                        <strong th:classappend="${summary.remainingSlots() == 0} ? 'text-danger'"
+                                th:text="${summary.unreturnedBooks() + ' / ' + summary.maxBooks() + ' cuốn'}">0 / 5 cuốn</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Phiếu quá hạn</span>
+                        <strong th:classappend="${summary.hasOverdue()} ? 'text-danger' : 'text-success'"
+                                th:text="${summary.hasOverdue()} ? 'Có' : 'Không'">Không</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Phí phạt còn nợ</span>
+                        <strong th:classappend="${summary.hasUnpaidFine()} ? 'text-danger' : 'text-success'"
+                                th:text="${#numbers.formatDecimal(summary.unpaidFine(), 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</strong>
+                    </li>
+                </ul>
+                <div class="card-body pt-2" th:unless="${summary.canBorrow()}">
+                    <div class="alert alert-warning small mb-0">
+                        <div th:if="${summary.blocked()}"><i class="bi bi-lock me-1"></i>Thành viên đang bị khóa.</div>
+                        <div th:if="${summary.hasOverdue()}"><i class="bi bi-alarm me-1"></i>Cần trả các phiếu quá hạn trước khi mượn mới.</div>
+                        <div th:if="${summary.hasUnpaidFine()}"><i class="bi bi-cash-coin me-1"></i>Cần thanh toán hết phí phạt trước khi mượn mới.</div>
+                        <div th:if="${summary.remainingSlots() == 0}"><i class="bi bi-journal-x me-1"></i>Đã đạt giới hạn số cuốn được giữ.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-clock-history me-2"></i>Lịch sử mượn sách</div>
+                <div class="table-responsive">
+                    <table class="table table-hover" th:if="${page.hasContent()}">
+                        <thead>
+                        <tr>
+                            <th>Phiếu</th>
+                            <th>Ngày mượn</th>
+                            <th>Hạn trả</th>
+                            <th class="text-center">Đã trả</th>
+                            <th class="text-end">Phí phạt</th>
+                            <th class="text-end">Còn nợ</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="b : ${page.content}">
+                            <td><a th:href="@{/borrowings/{id}(id=${b.id})}" class="cell-title" th:text="'#' + ${b.id}">#1</a></td>
+                            <td th:text="${#temporals.format(b.borrowDate, 'dd/MM/yyyy')}"></td>
+                            <td th:text="${#temporals.format(b.dueDate, 'dd/MM/yyyy')}"></td>
+                            <td class="text-center" th:text="${b.returnedQuantity} + '/' + ${b.totalQuantity}">0/2</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(b.totalFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+                            <td class="text-end" th:classappend="${b.hasUnpaidFine()} ? 'text-danger fw-semibold'"
+                                th:text="${#numbers.formatDecimal(b.unpaidFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+                            <td><span th:replace="~{fragments/common :: borrowingStatus(${b.status})}"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <th:block th:unless="${page.hasContent()}">
+                        <div th:replace="~{fragments/common :: empty('Thành viên chưa mượn sách lần nào')}"></div>
+                    </th:block>
+                </div>
+                <div th:replace="~{fragments/common :: pagination(${page})}"></div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

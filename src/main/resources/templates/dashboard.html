@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Bảng điều khiển · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <h1>Xin chào 👋</h1>
+            <p class="subtitle">Tổng quan hoạt động thư viện hôm nay</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/books/new}" class="btn btn-outline-primary"><i class="bi bi-journal-plus me-1"></i>Thêm sách</a>
+            <a th:href="@{/borrowings/new}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Lập phiếu mượn</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card">
+                <div class="stat-icon bg-indigo-soft"><i class="bi bi-journal-bookmark"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${stats.totalTitles}">24</div>
+                    <div class="stat-label">Đầu sách</div>
+                    <div class="stat-hint"><span th:text="${stats.availableCopies}">80</span> / <span th:text="${stats.totalCopies}">90</span> cuốn sẵn sàng</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card">
+                <div class="stat-icon bg-emerald-soft"><i class="bi bi-people"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${stats.activeMembers}">8</div>
+                    <div class="stat-label">Thành viên hoạt động</div>
+                    <div class="stat-hint"><span th:text="${stats.blockedMembers}">2</span> thành viên bị khóa</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card">
+                <div class="stat-icon bg-sky-soft"><i class="bi bi-arrow-left-right"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${stats.openBorrowings}">6</div>
+                    <div class="stat-label">Phiếu chưa trả hết</div>
+                    <div class="stat-hint"><span th:text="${stats.borrowedCopies}">10</span> cuốn đang được mượn</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card">
+                <div class="stat-icon bg-rose-soft"><i class="bi bi-alarm"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${stats.overdueBorrowings}">3</div>
+                    <div class="stat-label">Phiếu quá hạn</div>
+                    <div class="stat-hint"><span th:text="${stats.finePendingBorrowings}">1</span> phiếu chờ thanh toán phí</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-cash-coin text-warning me-2"></i>Phí phạt trả muộn</span>
+            <a th:href="@{/fine-policies}" class="small text-decoration-none">
+                Đang áp dụng: <strong th:text="${finePolicy.name}">Chính sách 2026</strong>
+                (<span th:text="${#numbers.formatDecimal(finePolicy.dailyFineAmount, 1, 'POINT', 0, 'COMMA')}">5.000</span> đ/ngày/cuốn)
+                <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 text-center">
+                <div class="col-6 col-md-3">
+                    <div class="stat-label">Tổng phí phát sinh</div>
+                    <div class="fs-5 fw-bold" th:text="${#numbers.formatDecimal(stats.totalFine, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-label">Đã thu</div>
+                    <div class="fs-5 fw-bold text-success" th:text="${#numbers.formatDecimal(stats.paidFine, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-label">Đã miễn giảm</div>
+                    <div class="fs-5 fw-bold text-secondary" th:text="${#numbers.formatDecimal(stats.waivedFine, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-label">Còn phải thu</div>
+                    <div class="fs-5 fw-bold text-danger" th:text="${#numbers.formatDecimal(stats.unpaidFine, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-alarm text-danger me-2"></i>Phiếu mượn quá hạn</span>
+                    <a th:href="@{/reports/overdue}" class="small text-decoration-none">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover" th:if="${!overdue.isEmpty()}">
+                        <thead>
+                        <tr>
+                            <th>Phiếu</th>
+                            <th>Thành viên</th>
+                            <th>Hạn trả</th>
+                            <th class="text-end">Quá hạn</th>
+                            <th class="text-end" title="Phí nếu trả nốt sách hôm nay">Phạt dự kiến</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="b : ${overdue}">
+                            <td><a th:href="@{/borrowings/{id}(id=${b.id})}" class="cell-title" th:text="'#' + ${b.id}">#1</a></td>
+                            <td>
+                                <div class="fw-semibold" th:text="${b.memberName}">Tên</div>
+                                <div class="cell-sub" th:text="${b.memberEmail}">email</div>
+                            </td>
+                            <td th:text="${#temporals.format(b.dueDate, 'dd/MM/yyyy')}">01/01/2026</td>
+                            <td class="text-end"><span class="badge text-bg-danger-soft" th:text="${b.overdueDays} + ' ngày'">3 ngày</span></td>
+                            <td class="text-end fw-semibold text-danger"
+                                th:text="${#numbers.formatDecimal(b.estimatedFine, 1, 'POINT', 0, 'COMMA')} + ' đ'">15.000 đ</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <th:block th:if="${overdue.isEmpty()}">
+                        <div th:replace="~{fragments/common :: empty('Không có phiếu mượn quá hạn 🎉')}"></div>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-trophy text-warning me-2"></i>Top 5 sách được mượn nhiều nhất</span>
+                    <a th:href="@{/reports/top-books}" class="small text-decoration-none">Chi tiết <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <ul class="list-group list-group-flush" th:if="${!topBooks.isEmpty()}">
+                    <li class="list-group-item d-flex align-items-center gap-3 py-3" th:each="t, s : ${topBooks}">
+                        <span class="rank" th:classappend="'rank-' + ${s.count}" th:text="${s.count}">1</span>
+                        <div class="flex-grow-1 min-w-0">
+                            <a th:href="@{/books/{id}(id=${t.bookId})}" class="cell-title d-block text-truncate" th:text="${t.title}">Sách</a>
+                            <div class="cell-sub" th:text="${t.author} + ' · ' + ${t.categoryName}">Tác giả</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold" th:text="${t.totalQuantity} + ' cuốn'">4 cuốn</div>
+                            <div class="cell-sub" th:text="${t.borrowingCount} + ' lượt mượn'">3 lượt</div>
+                        </div>
+                    </li>
+                </ul>
+                <th:block th:if="${topBooks.isEmpty()}">
+                    <div th:replace="~{fragments/common :: empty('Chưa có lượt mượn nào')}"></div>
+                </th:block>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clock-history text-primary me-2"></i>Phiếu mượn gần đây</span>
+                    <a th:href="@{/borrowings}" class="small text-decoration-none">Tất cả phiếu mượn <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Phiếu</th>
+                            <th>Thành viên</th>
+                            <th>Ngày mượn</th>
+                            <th>Hạn trả</th>
+                            <th class="text-center">Đã trả</th>
+                            <th>Trạng thái</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="b : ${recentBorrowings}">
+                            <td><a th:href="@{/borrowings/{id}(id=${b.id})}" class="cell-title" th:text="'#' + ${b.id}">#1</a></td>
+                            <td th:text="${b.memberName}">Tên</td>
+                            <td th:text="${#temporals.format(b.borrowDate, 'dd/MM/yyyy')}"></td>
+                            <td th:text="${#temporals.format(b.dueDate, 'dd/MM/yyyy')}"></td>
+                            <td class="text-center"><span th:text="${b.returnedQuantity} + '/' + ${b.totalQuantity}">0/2</span></td>
+                            <td><span th:replace="~{fragments/common :: borrowingStatus(${b.status})}"></span></td>
+                            <td class="text-end">
+                                <a th:if="${b.open}" th:href="@{/borrowings/{id}/return(id=${b.id})}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-box-arrow-in-left me-1"></i>Trả sách
+                                </a>
+                                <a th:if="${b.hasUnpaidFine()}" th:href="@{/borrowings/{id}/payments/new(id=${b.id})}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-cash-stack me-1"></i>Thu phí
+                                </a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

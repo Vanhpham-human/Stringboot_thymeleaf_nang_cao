@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Sách · LibraryHub</title>
+</head>
+<body>
+<main th:with="isNew=${bookForm.id == null}">
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/books}">Sách</a></li>
+                    <li class="breadcrumb-item active" th:text="${isNew} ? 'Thêm mới' : 'Chỉnh sửa'">Thêm mới</li>
+                </ol>
+            </nav>
+            <h1 th:text="${isNew} ? 'Thêm sách mới' : 'Sửa thông tin sách'">Thêm sách mới</h1>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-4">
+                    <form th:object="${bookForm}" method="post" novalidate
+                          th:action="${isNew} ? @{/books} : @{/books/{id}(id=${bookForm.id})}">
+                        <div th:replace="~{fragments/common :: globalErrors}"></div>
+
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label for="isbn" class="form-label required">ISBN</label>
+                                <input type="text" class="form-control mono" th:field="*{isbn}" th:errorclass="is-invalid"
+                                       placeholder="9780132350884" maxlength="13">
+                                <div class="invalid-feedback" th:errors="*{isbn}">Lỗi</div>
+                                <div class="form-text">10 hoặc 13 ký tự, không có dấu gạch.</div>
+                            </div>
+                            <div class="col-md-7">
+                                <label for="categoryId" class="form-label required">Thể loại</label>
+                                <select class="form-select" th:field="*{categoryId}" th:errorclass="is-invalid">
+                                    <option value="">-- Chọn thể loại --</option>
+                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}">CNTT</option>
+                                </select>
+                                <div class="invalid-feedback" th:errors="*{categoryId}">Lỗi</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="title" class="form-label required">Tên sách</label>
+                                <input type="text" class="form-control" th:field="*{title}" th:errorclass="is-invalid" maxlength="255">
+                                <div class="invalid-feedback" th:errors="*{title}">Lỗi</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="author" class="form-label required">Tác giả</label>
+                                <input type="text" class="form-control" th:field="*{author}" th:errorclass="is-invalid" maxlength="150">
+                                <div class="invalid-feedback" th:errors="*{author}">Lỗi</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="totalQuantity" class="form-label required">Tổng số lượng</label>
+                                <input type="number" min="1" class="form-control" th:field="*{totalQuantity}" th:errorclass="is-invalid">
+                                <div class="invalid-feedback" th:errors="*{totalQuantity}">Lỗi</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="availableQuantity" class="form-label required">Số lượng đang có</label>
+                                <input type="number" min="0" class="form-control" th:field="*{availableQuantity}"
+                                       th:errorclass="is-invalid" th:readonly="${!isNew}">
+                                <div class="invalid-feedback" th:errors="*{availableQuantity}">Lỗi</div>
+                                <div class="form-text" th:unless="${isNew}">Tự tính lại theo số cuốn đang cho mượn.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="status" class="form-label required">Trạng thái</label>
+                                <select class="form-select" th:field="*{status}" th:errorclass="is-invalid">
+                                    <option th:each="s : ${bookStatuses}" th:value="${s}" th:text="${s.label}">ACTIVE</option>
+                                </select>
+                                <div class="invalid-feedback" th:errors="*{status}">Lỗi</div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Lưu sách</button>
+                            <a th:href="@{/books}" class="btn btn-light">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card" th:if="${book != null}">
+                <div class="card-header"><i class="bi bi-info-circle me-2"></i>Tình trạng hiện tại</div>
+                <div class="card-body">
+                    <dl class="info-list mb-0">
+                        <dt>Tổng số lượng</dt>
+                        <dd th:text="${book.totalQuantity}">5</dd>
+                        <dt>Đang cho mượn</dt>
+                        <dd th:text="${book.borrowedQuantity}">2</dd>
+                        <dt>Còn trong kho</dt>
+                        <dd th:text="${book.availableQuantity}">3</dd>
+                    </dl>
+                    <div class="small text-body-secondary">
+                        Tổng số lượng mới không được nhỏ hơn số cuốn đang cho mượn.
+                    </div>
+                </div>
+            </div>
+            <div class="card" th:if="${book == null}">
+                <div class="card-header"><i class="bi bi-lightbulb me-2"></i>Lưu ý</div>
+                <div class="card-body small text-body-secondary">
+                    <ul class="mb-0 ps-3">
+                        <li>ISBN là duy nhất trong hệ thống.</li>
+                        <li>Số lượng đang có không được lớn hơn tổng số lượng.</li>
+                        <li>Sách ở trạng thái <em>Ngừng lưu hành</em> không thể cho mượn.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

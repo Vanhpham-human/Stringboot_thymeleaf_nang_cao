@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Quản lý sách · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <h1>Sách</h1>
+            <p class="subtitle">Tìm kiếm theo tên sách, tác giả, ISBN hoặc thể loại</p>
+        </div>
+        <a th:href="@{/books/new}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Thêm sách</a>
+    </div>
+
+    <div class="card">
+        <form class="filter-bar row g-2 align-items-end" th:action="@{/books}" method="get">
+            <div class="col-lg-4">
+                <label class="form-label" for="keyword">Từ khóa</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="keyword" name="keyword" th:value="${keyword}"
+                           placeholder="Tên sách, tác giả, ISBN, thể loại...">
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label" for="categoryId">Thể loại</label>
+                <select class="form-select" id="categoryId" name="categoryId" data-auto-submit>
+                    <option value="">Tất cả thể loại</option>
+                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"
+                            th:selected="${c.id == categoryId}">Thể loại</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label" for="status">Trạng thái</label>
+                <select class="form-select" id="status" name="status" data-auto-submit>
+                    <option value="">Tất cả</option>
+                    <option th:each="s : ${bookStatuses}" th:value="${s}" th:text="${s.label}"
+                            th:selected="${s == status}">Trạng thái</option>
+                </select>
+            </div>
+            <div class="col-lg-auto">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                <a th:href="@{/books}" class="btn btn-light">Xóa lọc</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover" th:if="${page.hasContent()}">
+                <thead>
+                <tr>
+                    <th><a th:replace="~{fragments/common :: sortLink('isbn', 'ISBN')}"></a></th>
+                    <th><a th:replace="~{fragments/common :: sortLink('title', 'Tên sách')}"></a></th>
+                    <th>Thể loại</th>
+                    <th><a th:replace="~{fragments/common :: sortLink('availableQuantity', 'Tồn kho')}"></a></th>
+                    <th>Trạng thái</th>
+                    <th><a th:replace="~{fragments/common :: sortLink('createdAt', 'Ngày tạo')}"></a></th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="b : ${page.content}">
+                    <td class="mono" th:text="${b.isbn}">9780132350884</td>
+                    <td>
+                        <a th:href="@{/books/{id}(id=${b.id})}" class="cell-title" th:text="${b.title}">Clean Code</a>
+                        <div class="cell-sub" th:text="${b.author}">Robert C. Martin</div>
+                    </td>
+                    <td><span class="badge text-bg-secondary-soft" th:text="${b.categoryName}">CNTT</span></td>
+                    <td style="min-width: 140px">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span><strong th:text="${b.availableQuantity}">3</strong> / <span th:text="${b.totalQuantity}">5</span></span>
+                            <span class="text-body-secondary" th:if="${b.borrowedQuantity > 0}" th:text="${b.borrowedQuantity} + ' đang mượn'"></span>
+                        </div>
+                        <div class="qty-bar"
+                             th:classappend="${b.availableQuantity == 0} ? 'empty' : (${b.availableQuantity * 3 <= b.totalQuantity} ? 'low')">
+                            <span th:style="'width:' + ${b.totalQuantity == 0 ? 0 : b.availableQuantity * 100 / b.totalQuantity} + '%'"></span>
+                        </div>
+                    </td>
+                    <td><span th:replace="~{fragments/common :: bookStatus(${b.status})}"></span></td>
+                    <td th:text="${#temporals.format(b.createdAt, 'dd/MM/yyyy')}"></td>
+                    <td class="text-end text-nowrap">
+                        <a th:href="@{/books/{id}(id=${b.id})}" class="btn btn-sm btn-light" title="Chi tiết"><i class="bi bi-eye"></i></a>
+                        <a th:href="@{/books/{id}/edit(id=${b.id})}" class="btn btn-sm btn-light" title="Sửa"><i class="bi bi-pencil"></i></a>
+                        <form th:action="@{/books/{id}/delete(id=${b.id})}" method="post" class="d-inline"
+                              th:data-confirm="|Xóa sách ${b.title}? Sách đang có lượt mượn chưa trả sẽ không thể xóa.|">
+                            <button type="submit" class="btn btn-sm btn-light text-danger" title="Xóa"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <th:block th:unless="${page.hasContent()}">
+                <div th:replace="~{fragments/common :: empty('Không tìm thấy sách phù hợp')}"></div>
+            </th:block>
+        </div>
+        <div th:replace="~{fragments/common :: pagination(${page})}"></div>
+    </div>
+</main>
+</body>
+</html>

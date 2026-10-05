@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Báo cáo quá hạn · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div th:replace="~{reports/tabs :: header('Báo cáo phiếu mượn quá hạn', 'Các phiếu chưa trả hết sách và đã quá hạn trả')}"></div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover" th:if="${page.hasContent()}">
+                <thead>
+                <tr>
+                    <th><a th:replace="~{fragments/common :: sortLink('id', 'Phiếu')}"></a></th>
+                    <th>Thành viên</th>
+                    <th><a th:replace="~{fragments/common :: sortLink('borrowDate', 'Ngày mượn')}"></a></th>
+                    <th><a th:replace="~{fragments/common :: sortLink('dueDate', 'Hạn trả')}"></a></th>
+                    <th class="text-center">Chưa trả</th>
+                    <th class="text-center">Số ngày quá hạn</th>
+                    <th class="text-end" th:title="|Theo chính sách ${finePolicy.name}|">Phạt dự kiến hôm nay</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="b : ${page.content}">
+                    <td><a th:href="@{/borrowings/{id}(id=${b.id})}" class="cell-title" th:text="'#' + ${b.id}">#1</a></td>
+                    <td>
+                        <a th:href="@{/members/{id}(id=${b.memberId})}" class="cell-title" th:text="${b.memberName}">Tên</a>
+                        <div class="cell-sub" th:text="${b.memberEmail}">email</div>
+                    </td>
+                    <td th:text="${#temporals.format(b.borrowDate, 'dd/MM/yyyy')}"></td>
+                    <td th:text="${#temporals.format(b.dueDate, 'dd/MM/yyyy')}"></td>
+                    <td class="text-center" th:text="${b.remainingQuantity} + ' cuốn'">1 cuốn</td>
+                    <td class="text-center"><span class="badge text-bg-danger-soft" th:text="${b.overdueDays} + ' ngày'">3 ngày</span></td>
+                    <td class="text-end fw-semibold text-danger"
+                        th:text="${#numbers.formatDecimal(b.estimatedFine, 1, 'POINT', 0, 'COMMA')} + ' đ'">15.000 đ</td>
+                    <td class="text-end">
+                        <a th:href="@{/borrowings/{id}/return(id=${b.id})}" class="btn btn-sm btn-outline-primary text-nowrap">
+                            <i class="bi bi-box-arrow-in-left me-1"></i>Trả sách
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <th:block th:unless="${page.hasContent()}">
+                <div th:replace="~{fragments/common :: empty('Không có phiếu mượn quá hạn 🎉')}"></div>
+            </th:block>
+        </div>
+        <div th:replace="~{fragments/common :: pagination(${page})}"></div>
+    </div>
+</main>
+</body>
+</html>

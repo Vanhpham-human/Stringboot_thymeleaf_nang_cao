@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="header(title, subtitle)">
+    <div class="page-header">
+        <div>
+            <h1 th:text="${title}">Báo cáo</h1>
+            <p class="subtitle" th:text="${subtitle}">Mô tả</p>
+        </div>
+    </div>
+    <ul class="nav nav-pills mb-3 gap-1">
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${activeTab == 'overdue'} ? active" th:href="@{/reports/overdue}">
+                <i class="bi bi-alarm me-1"></i>Phiếu quá hạn
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${activeTab == 'top-books'} ? active" th:href="@{/reports/top-books}">
+                <i class="bi bi-trophy me-1"></i>Top 5 sách
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${activeTab == 'members'} ? active" th:href="@{/reports/members}">
+                <i class="bi bi-bar-chart-line me-1"></i>Lượt mượn theo thành viên
+            </a>
+        </li>
+    </ul>
+</div>
+</body>
+</html>

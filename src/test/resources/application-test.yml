@@ -1,0 +1,24 @@
+# Integration test chạy trên H2 in-memory (chế độ tương thích MySQL), không cần MySQL thật.
+# Schema sinh từ entity; Flyway (script MySQL) chỉ chạy trên môi trường thật.
+spring:
+  datasource:
+    url: jdbc:h2:mem:library_test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: false
+
+app:
+  overdue-job:
+    cron: "-"
+
+logging:
+  level:
+    com.example.library: WARN

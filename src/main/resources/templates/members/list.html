@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Thành viên · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <h1>Thành viên</h1>
+            <p class="subtitle">Thành viên bị khóa không thể lập phiếu mượn mới</p>
+        </div>
+        <a th:href="@{/members/new}" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i>Thêm thành viên</a>
+    </div>
+
+    <div class="card">
+        <form class="filter-bar row g-2 align-items-end" th:action="@{/members}" method="get">
+            <div class="col-lg-5">
+                <label class="form-label" for="keyword">Tìm kiếm</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="keyword" name="keyword" th:value="${keyword}"
+                           placeholder="Họ tên, email, số điện thoại...">
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label" for="status">Trạng thái</label>
+                <select class="form-select" id="status" name="status" data-auto-submit>
+                    <option value="">Tất cả</option>
+                    <option th:each="s : ${memberStatuses}" th:value="${s}" th:text="${s.label}"
+                            th:selected="${s == status}">Trạng thái</option>
+                </select>
+            </div>
+            <div class="col-lg-auto">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                <a th:href="@{/members}" class="btn btn-light">Xóa lọc</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover" th:if="${page.hasContent()}">
+                <thead>
+                <tr>
+                    <th><a th:replace="~{fragments/common :: sortLink('fullName', 'Thành viên')}"></a></th>
+                    <th><a th:replace="~{fragments/common :: sortLink('email', 'Email')}"></a></th>
+                    <th>Điện thoại</th>
+                    <th>Trạng thái</th>
+                    <th><a th:replace="~{fragments/common :: sortLink('createdAt', 'Ngày tham gia')}"></a></th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="m : ${page.content}">
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="avatar" th:text="${#strings.substring(m.fullName, m.fullName.lastIndexOf(' ') + 1, m.fullName.lastIndexOf(' ') + 2)}">A</span>
+                            <a th:href="@{/members/{id}(id=${m.id})}" class="cell-title" th:text="${m.fullName}">Tên</a>
+                        </div>
+                    </td>
+                    <td th:text="${m.email}">email</td>
+                    <td th:text="${m.phone} ?: '—'">0912345678</td>
+                    <td><span th:replace="~{fragments/common :: memberStatus(${m.status})}"></span></td>
+                    <td th:text="${#temporals.format(m.createdAt, 'dd/MM/yyyy')}"></td>
+                    <td class="text-end text-nowrap">
+                        <a th:href="@{/members/{id}(id=${m.id})}" class="btn btn-sm btn-light" title="Chi tiết"><i class="bi bi-eye"></i></a>
+                        <a th:href="@{/members/{id}/edit(id=${m.id})}" class="btn btn-sm btn-light" title="Sửa"><i class="bi bi-pencil"></i></a>
+                        <form th:if="${m.status.name() == 'ACTIVE'}" th:action="@{/members/{id}/block(id=${m.id})}" method="post" class="d-inline"
+                              th:data-confirm="|Khóa thành viên ${m.fullName}?|">
+                            <button type="submit" class="btn btn-sm btn-light text-danger" title="Khóa"><i class="bi bi-lock"></i></button>
+                        </form>
+                        <form th:unless="${m.status.name() == 'ACTIVE'}" th:action="@{/members/{id}/unblock(id=${m.id})}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-light text-success" title="Mở khóa"><i class="bi bi-unlock"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <th:block th:unless="${page.hasContent()}">
+                <div th:replace="~{fragments/common :: empty('Không tìm thấy thành viên nào')}"></div>
+            </th:block>
+        </div>
+        <div th:replace="~{fragments/common :: pagination(${page})}"></div>
+    </div>
+</main>
+</body>
+</html>

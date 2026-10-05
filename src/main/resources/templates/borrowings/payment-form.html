@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::script})}">
+<head>
+    <title>Thanh toán phí phạt · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/borrowings}">Phiếu mượn</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/borrowings/{id}(id=${borrowing.id})}" th:text="'#' + ${borrowing.id}">#1</a></li>
+                    <li class="breadcrumb-item active">Thanh toán phí</li>
+                </ol>
+            </nav>
+            <h1>Thanh toán phí phạt</h1>
+            <p class="subtitle">Có thể thanh toán nhiều lần, mỗi lần không vượt quá số phí còn phải thu</p>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-body p-4">
+                    <form th:object="${paymentForm}" th:action="@{/borrowings/{id}/payments(id=${borrowing.id})}" method="post" novalidate>
+                        <div th:replace="~{fragments/common :: globalErrors}"></div>
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label required">Số tiền thanh toán</label>
+                            <div class="input-group has-validation">
+                                <input type="number" class="form-control" th:field="*{amount}" th:errorclass="is-invalid"
+                                       min="1" step="1000" th:max="${borrowing.unpaidFineAmount}">
+                                <span class="input-group-text">đ</span>
+                                <button type="button" class="btn btn-outline-secondary" id="pay-all"
+                                        th:data-amount="${borrowing.unpaidFineAmount}">Trả hết</button>
+                                <div class="invalid-feedback" th:errors="*{amount}">Lỗi</div>
+                            </div>
+                            <div class="form-text">
+                                Tối đa <strong th:text="${#numbers.formatDecimal(borrowing.unpaidFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</strong>.
+                                Nhập ít hơn để thanh toán một phần.
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="paymentDate" class="form-label required">Ngày thanh toán</label>
+                                <input type="date" class="form-control" th:field="*{paymentDate}" th:errorclass="is-invalid"
+                                       th:min="${borrowing.borrowDate}">
+                                <div class="invalid-feedback" th:errors="*{paymentDate}">Lỗi</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="method" class="form-label required">Hình thức</label>
+                                <select class="form-select" th:field="*{method}" th:errorclass="is-invalid">
+                                    <option th:each="m : ${paymentMethods}" th:value="${m}" th:text="${m.label}">Tiền mặt</option>
+                                </select>
+                                <div class="invalid-feedback" th:errors="*{method}">Lỗi</div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="note" class="form-label">Ghi chú</label>
+                            <textarea class="form-control" th:field="*{note}" th:errorclass="is-invalid" rows="2" maxlength="500"
+                                      placeholder="VD: Mã giao dịch chuyển khoản, người nộp thay..."></textarea>
+                            <div class="invalid-feedback" th:errors="*{note}">Lỗi</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success"><i class="bi bi-cash-stack me-1"></i>Ghi nhận thanh toán</button>
+                            <a th:href="@{/borrowings/{id}(id=${borrowing.id})}" class="btn btn-light">Quay lại</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div th:replace="~{fragments/common :: fineSummary(${borrowing})}"></div>
+        </div>
+    </div>
+</main>
+
+<script>
+    document.getElementById('pay-all').addEventListener('click', e => {
+        document.getElementById('amount').value = parseFloat(e.currentTarget.dataset.amount);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Phân trang dùng chung: giữ nguyên các tham số lọc / sắp xếp hiện tại -->
+<div th:fragment="pagination(page)" th:if="${page.totalElements > 0}"
+     class="d-flex justify-content-between align-items-center flex-wrap gap-2 px-3 py-3 border-top">
+    <div class="small text-body-secondary">
+        Hiển thị <strong th:text="${page.number * page.size + 1}">1</strong>–<strong
+            th:text="${page.number * page.size + page.numberOfElements}">10</strong>
+        trên <strong th:text="${page.totalElements}">100</strong> bản ghi
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <select class="form-select form-select-sm w-auto" data-navigate aria-label="Số bản ghi mỗi trang">
+            <option th:each="s : ${ {5, 10, 20, 50} }" th:value="${@urls.size(s)}"
+                    th:text="${s + ' / trang'}" th:selected="${s == page.size}">10 / trang</option>
+        </select>
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" th:classappend="${page.first} ? disabled">
+                <a class="page-link" th:href="${page.first} ? '#' : ${@urls.page(page.number - 1)}" aria-label="Trang trước">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <li class="page-item" th:each="i : ${@urls.pageNumbers(page)}" th:classappend="${i == page.number} ? active">
+                <a class="page-link" th:href="${@urls.page(i)}" th:text="${i + 1}">1</a>
+            </li>
+            <li class="page-item" th:classappend="${page.last} ? disabled">
+                <a class="page-link" th:href="${page.last} ? '#' : ${@urls.page(page.number + 1)}" aria-label="Trang sau">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- Tiêu đề cột có thể sắp xếp -->
+<a th:fragment="sortLink(property, label)" th:href="${@urls.sort(property)}" class="sort-link">
+    <span th:text="${label}">Cột</span>
+    <i class="bi" th:classappend="${@urls.sortIcon(property)}"></i>
+</a>
+
+<span th:fragment="borrowingStatus(status)" class="badge rounded-pill" th:classappend="${status.badgeClass}">
+    <i class="bi me-1" th:classappend="${status.icon}"></i>
+    <span th:text="${status.label}">Đang mượn</span>
+</span>
+
+<!-- Số tiền VND: 1.234.567 đ -->
+<span th:fragment="money(amount)" class="text-nowrap"
+      th:text="${#numbers.formatDecimal(amount == null ? 0 : amount, 1, 'POINT', 0, 'COMMA') + ' đ'}">0 đ</span>
+
+<span th:fragment="memberStatus(status)" class="badge rounded-pill"
+      th:classappend="${status.name() == 'ACTIVE'} ? 'text-bg-success-soft' : 'text-bg-danger-soft'">
+    <i class="bi me-1" th:classappend="${status.name() == 'ACTIVE'} ? 'bi-person-check' : 'bi-lock'"></i>
+    <span th:text="${status.label}">Hoạt động</span>
+</span>
+
+<span th:fragment="bookStatus(status)" class="badge rounded-pill"
+      th:classappend="${status.name() == 'ACTIVE'} ? 'text-bg-success-soft' : (${status.name() == 'INACTIVE'} ? 'text-bg-warning-soft' : 'text-bg-secondary-soft')"
+      th:text="${status.label}">Đang lưu hành</span>
+
+<!-- Tóm tắt phí của một phiếu (dùng ở form thanh toán / miễn giảm) -->
+<div th:fragment="fineSummary(b)" class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-receipt me-2"></i>Phiếu mượn #<span th:text="${b.id}">1</span></span>
+        <span th:replace="~{fragments/common :: borrowingStatus(${b.status})}"></span>
+    </div>
+    <div class="card-body">
+        <dl class="info-list mb-0">
+            <dt>Thành viên</dt>
+            <dd th:text="${b.memberName}">Tên</dd>
+            <dt>Hạn trả</dt>
+            <dd th:text="${#temporals.format(b.dueDate, 'dd/MM/yyyy')}">01/01/2026</dd>
+            <dt>Tổng phí phạt</dt>
+            <dd th:text="${#numbers.formatDecimal(b.totalFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</dd>
+            <dt>Đã thanh toán</dt>
+            <dd class="text-success" th:text="${#numbers.formatDecimal(b.paidFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</dd>
+            <dt>Đã miễn giảm</dt>
+            <dd th:text="${#numbers.formatDecimal(b.waivedFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</dd>
+            <dt>Còn phải thu</dt>
+            <dd class="text-danger fs-5" th:text="${#numbers.formatDecimal(b.unpaidFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</dd>
+        </dl>
+    </div>
+</div>
+
+<!-- Trạng thái rỗng cho bảng -->
+<div th:fragment="empty(message)" class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <p th:text="${message}">Không có dữ liệu</p>
+</div>
+
+<!-- Lỗi toàn cục trên form (lỗi nghiệp vụ không gắn với trường cụ thể) -->
+<div th:fragment="globalErrors" th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger d-flex gap-2">
+    <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+    <div>
+        <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Lỗi</div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Top sách · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div th:replace="~{reports/tabs :: header('Top 5 sách được mượn nhiều nhất', 'Xếp hạng theo tổng số cuốn đã được mượn')}"></div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover" th:if="${!topBooks.isEmpty()}"
+                   th:with="max=${topBooks[0].totalQuantity}">
+                <thead>
+                <tr>
+                    <th style="width: 70px">Hạng</th>
+                    <th>Sách</th>
+                    <th>Thể loại</th>
+                    <th class="text-center">Lượt mượn</th>
+                    <th style="width: 30%">Tổng số cuốn đã mượn</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t, s : ${topBooks}">
+                    <td><span class="rank" th:classappend="'rank-' + ${s.count}" th:text="${s.count}">1</span></td>
+                    <td>
+                        <a th:href="@{/books/{id}(id=${t.bookId})}" class="cell-title" th:text="${t.title}">Sách</a>
+                        <div class="cell-sub"><span th:text="${t.author}"></span> · <span class="mono" th:text="${t.isbn}"></span></div>
+                    </td>
+                    <td><span class="badge text-bg-secondary-soft" th:text="${t.categoryName}">CNTT</span></td>
+                    <td class="text-center fw-semibold" th:text="${t.borrowingCount}">3</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height: 8px">
+                                <div class="progress-bar" style="background: linear-gradient(90deg,#6366f1,#a855f7)"
+                                     th:style="'width:' + ${max == 0 ? 0 : t.totalQuantity * 100 / max} + '%; background: linear-gradient(90deg,#6366f1,#a855f7)'"></div>
+                            </div>
+                            <strong th:text="${t.totalQuantity}">4</strong>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <th:block th:if="${topBooks.isEmpty()}">
+                <div th:replace="~{fragments/common :: empty('Chưa có dữ liệu mượn sách')}"></div>
+            </th:block>
+        </div>
+    </div>
+</main>
+</body>
+</html>

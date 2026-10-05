@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Lượt mượn theo thành viên · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div th:replace="~{reports/tabs :: header('Lượt mượn theo thành viên', 'Số phiếu, số cuốn đã mượn, số cuốn chưa trả và tiền phạt của từng thành viên')}"></div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover" th:if="${page.hasContent()}">
+                <thead>
+                <tr>
+                    <th>Thành viên</th>
+                    <th>Trạng thái</th>
+                    <th class="text-center">Số phiếu mượn</th>
+                    <th class="text-center">Tổng số cuốn</th>
+                    <th class="text-center">Chưa trả</th>
+                    <th class="text-end">Tiền phạt</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="m : ${page.content}">
+                    <td>
+                        <a th:href="@{/members/{id}(id=${m.memberId})}" class="cell-title" th:text="${m.fullName}">Tên</a>
+                        <div class="cell-sub" th:text="${m.email}">email</div>
+                    </td>
+                    <td><span th:replace="~{fragments/common :: memberStatus(${m.status})}"></span></td>
+                    <td class="text-center fw-semibold" th:text="${m.borrowingCount}">2</td>
+                    <td class="text-center" th:text="${m.totalBooks}">3</td>
+                    <td class="text-center">
+                        <span th:if="${m.unreturnedBooks > 0}" class="badge text-bg-warning-soft" th:text="${m.unreturnedBooks}">1</span>
+                        <span th:unless="${m.unreturnedBooks > 0}" class="text-body-tertiary">0</span>
+                    </td>
+                    <td class="text-end" th:classappend="${m.totalFine.signum() > 0} ? 'text-danger fw-semibold'"
+                        th:text="${#numbers.formatDecimal(m.totalFine, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+                </tr>
+                </tbody>
+            </table>
+            <th:block th:unless="${page.hasContent()}">
+                <div th:replace="~{fragments/common :: empty('Chưa có thành viên')}"></div>
+            </th:block>
+        </div>
+        <div th:replace="~{fragments/common :: pagination(${page})}"></div>
+    </div>
+</main>
+</body>
+</html>

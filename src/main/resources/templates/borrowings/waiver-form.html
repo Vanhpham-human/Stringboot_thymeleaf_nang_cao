@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Miễn giảm phí phạt · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/borrowings}">Phiếu mượn</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/borrowings/{id}(id=${borrowing.id})}" th:text="'#' + ${borrowing.id}">#1</a></li>
+                    <li class="breadcrumb-item active">Miễn giảm phí</li>
+                </ol>
+            </nav>
+            <h1>Miễn giảm phí phạt</h1>
+            <p class="subtitle">Bắt buộc ghi rõ lý do và người duyệt để phục vụ đối soát</p>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-body p-4">
+                    <form th:object="${waiverForm}" th:action="@{/borrowings/{id}/waivers(id=${borrowing.id})}" method="post" novalidate>
+                        <div th:replace="~{fragments/common :: globalErrors}"></div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="amount" class="form-label required">Số tiền miễn giảm</label>
+                                <div class="input-group has-validation">
+                                    <input type="number" class="form-control" th:field="*{amount}" th:errorclass="is-invalid"
+                                           min="1" step="1000" th:max="${borrowing.unpaidFineAmount}">
+                                    <span class="input-group-text">đ</span>
+                                    <div class="invalid-feedback" th:errors="*{amount}">Lỗi</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="approvedDate" class="form-label required">Ngày duyệt</label>
+                                <input type="date" class="form-control" th:field="*{approvedDate}" th:errorclass="is-invalid"
+                                       th:min="${borrowing.borrowDate}">
+                                <div class="invalid-feedback" th:errors="*{approvedDate}">Lỗi</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="approvedBy" class="form-label required">Người duyệt</label>
+                            <input type="text" class="form-control" th:field="*{approvedBy}" th:errorclass="is-invalid"
+                                   maxlength="100" placeholder="VD: Thủ thư Nguyễn Thị Mai">
+                            <div class="invalid-feedback" th:errors="*{approvedBy}">Lỗi</div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="reason" class="form-label required">Lý do miễn giảm</label>
+                            <textarea class="form-control" th:field="*{reason}" th:errorclass="is-invalid" rows="3" maxlength="500"
+                                      placeholder="VD: Thành viên nằm viện trong thời gian mượn, có giấy xác nhận"></textarea>
+                            <div class="invalid-feedback" th:errors="*{reason}">Lỗi</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-hand-thumbs-up me-1"></i>Duyệt miễn giảm</button>
+                            <a th:href="@{/borrowings/{id}(id=${borrowing.id})}" class="btn btn-light">Quay lại</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div th:replace="~{fragments/common :: fineSummary(${borrowing})}"></div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

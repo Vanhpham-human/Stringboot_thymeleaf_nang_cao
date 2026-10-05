@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Chi tiết sách · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/books}">Sách</a></li>
+                    <li class="breadcrumb-item active" th:text="${book.title}">Sách</li>
+                </ol>
+            </nav>
+            <h1 th:text="${book.title}">Clean Code</h1>
+            <p class="subtitle" th:text="${book.author}">Tác giả</p>
+        </div>
+        <div class="d-flex gap-2" th:if="${book.status.name() != 'DELETED'}">
+            <a th:href="@{/books/{id}/edit(id=${book.id})}" class="btn btn-outline-primary"><i class="bi bi-pencil me-1"></i>Sửa</a>
+            <form th:action="@{/books/{id}/delete(id=${book.id})}" method="post"
+                  th:data-confirm="|Xóa sách ${book.title}?|">
+                <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i>Xóa</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <div class="stat-icon bg-indigo-soft"><i class="bi bi-stack"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${book.totalQuantity}">5</div>
+                    <div class="stat-label">Tổng số lượng</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <div class="stat-icon bg-emerald-soft"><i class="bi bi-check2-square"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${book.availableQuantity}">3</div>
+                    <div class="stat-label">Đang có trong kho</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <div class="stat-icon bg-amber-soft"><i class="bi bi-box-arrow-up-right"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${book.borrowedQuantity}">2</div>
+                    <div class="stat-label">Đang cho mượn</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">Thông tin sách</div>
+                <div class="card-body">
+                    <dl class="row info-list mb-0">
+                        <div class="col-md-3"><dt>ISBN</dt><dd class="mono" th:text="${book.isbn}">978</dd></div>
+                        <div class="col-md-3"><dt>Thể loại</dt><dd th:text="${book.categoryName}">CNTT</dd></div>
+                        <div class="col-md-3"><dt>Trạng thái</dt><dd><span th:replace="~{fragments/common :: bookStatus(${book.status})}"></span></dd></div>
+                        <div class="col-md-3"><dt>Ngày tạo</dt><dd th:text="${#temporals.format(book.createdAt, 'dd/MM/yyyy HH:mm')}"></dd></div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

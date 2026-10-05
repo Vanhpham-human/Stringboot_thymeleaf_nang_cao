@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::script})}">
+<head>
+    <title>Trả sách · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/borrowings}">Phiếu mượn</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/borrowings/{id}(id=${borrowing.id})}" th:text="'#' + ${borrowing.id}">#1</a></li>
+                    <li class="breadcrumb-item active">Trả sách</li>
+                </ol>
+            </nav>
+            <h1>Trả sách · Phiếu #<span th:text="${borrowing.id}">1</span></h1>
+            <p class="subtitle">
+                <span th:text="${borrowing.memberName}">Tên</span> ·
+                mượn ngày <strong th:text="${#temporals.format(borrowing.borrowDate, 'dd/MM/yyyy')}"></strong> ·
+                hạn trả <strong th:text="${#temporals.format(borrowing.dueDate, 'dd/MM/yyyy')}"></strong>
+            </p>
+        </div>
+    </div>
+
+    <div class="alert alert-light border d-flex gap-2 align-items-start small">
+        <i class="bi bi-info-circle text-primary mt-1"></i>
+        <div>
+            Chính sách đang áp dụng: <strong th:text="${finePolicy.name}">Chính sách 2026</strong> —
+            <strong th:text="${#numbers.formatDecimal(finePolicy.dailyFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">5.000 đ</strong> / ngày / cuốn<th:block
+                th:if="${finePolicy.graceDays > 0}">, miễn phạt <strong th:text="${finePolicy.graceDays}">0</strong> ngày đầu</th:block><th:block
+                th:if="${finePolicy.maxFineAmount != null}">, tối đa <strong th:text="${#numbers.formatDecimal(finePolicy.maxFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">100.000 đ</strong> mỗi dòng sách</th:block>.
+            Trả một phần khi đã trễ hạn chỉ tính phí cho số cuốn trả lần này.
+        </div>
+    </div>
+
+    <form th:object="${returnForm}" th:action="@{/borrowings/{id}/return(id=${borrowing.id})}" method="post" novalidate
+          id="return-form"
+          th:data-due-date="${borrowing.dueDate}"
+          th:data-daily="${finePolicy.dailyFineAmount}"
+          th:data-grace="${finePolicy.graceDays}"
+          th:data-max="${finePolicy.maxFineAmount}">
+        <div th:replace="~{fragments/common :: globalErrors}"></div>
+
+        <div class="card">
+            <div class="card-header d-flex flex-wrap gap-3 justify-content-between align-items-center">
+                <span><i class="bi bi-box-arrow-in-left me-2"></i>Nhập số lượng trả cho từng sách</span>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="returnDate" class="form-label mb-0 text-nowrap">Ngày trả</label>
+                    <input type="date" class="form-control form-control-sm" th:field="*{returnDate}" th:errorclass="is-invalid"
+                           th:min="${borrowing.borrowDate}">
+                    <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" id="fill-all">Trả tất cả</button>
+                </div>
+            </div>
+            <div class="px-3 pt-2 text-danger small" th:if="${#fields.hasErrors('returnDate')}" th:errors="*{returnDate}">Lỗi</div>
+            <div class="px-3 pt-2 text-danger small" th:if="${#fields.hasErrors('items')}" th:errors="*{items}">Lỗi</div>
+            <div class="px-3 pt-2 small" id="late-info"></div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                    <tr>
+                        <th>Sách</th>
+                        <th class="text-center">Mượn</th>
+                        <th class="text-center">Đã trả</th>
+                        <th class="text-center">Còn lại</th>
+                        <th class="text-end">Phí đã tính</th>
+                        <th style="width: 170px">Trả lần này</th>
+                        <th class="text-end">Phí lần này</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="d, s : ${borrowing.details.?[!fullyReturned]}" class="return-row"
+                        th:data-remaining="${d.remainingQuantity}" th:data-charged="${d.fineAmount}">
+                        <td>
+                            <div class="cell-title" th:text="${d.bookTitle}">Sách</div>
+                            <div class="cell-sub mono" th:text="${d.isbn}">isbn</div>
+                            <input type="hidden" th:field="*{items[__${s.index}__].detailId}">
+                        </td>
+                        <td class="text-center" th:text="${d.quantity}">2</td>
+                        <td class="text-center" th:text="${d.returnedQuantity}">0</td>
+                        <td class="text-center"><span class="badge text-bg-warning-soft" th:text="${d.remainingQuantity}">2</span></td>
+                        <td class="text-end text-body-secondary" th:text="${#numbers.formatDecimal(d.fineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <input type="number" min="0" th:max="${d.remainingQuantity}" class="form-control return-qty"
+                                       th:field="*{items[__${s.index}__].quantity}" th:errorclass="is-invalid">
+                                <button type="button" class="btn btn-outline-secondary fill-row" title="Trả hết dòng này">Hết</button>
+                            </div>
+                            <div class="text-danger small" th:errors="*{items[__${s.index}__].quantity}">Lỗi</div>
+                        </td>
+                        <td class="text-end row-fine">0 đ</td>
+                    </tr>
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="6" class="text-end fw-semibold">Tổng phí phát sinh cho lần trả này</td>
+                        <td class="text-end fw-bold text-danger" id="total-fine">0 đ</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card-footer bg-transparent d-flex justify-content-between align-items-center py-3">
+                <a th:href="@{/borrowings/{id}(id=${borrowing.id})}" class="btn btn-light">Quay lại</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Xác nhận trả</button>
+            </div>
+        </div>
+    </form>
+</main>
+
+<script>
+    (() => {
+        const form = document.getElementById('return-form');
+        const dueDate = new Date(form.dataset.dueDate + 'T00:00:00');
+        const daily = parseFloat(form.dataset.daily || '0');
+        const grace = parseInt(form.dataset.grace || '0', 10);
+        const max = form.dataset.max ? parseFloat(form.dataset.max) : null;
+        const returnDate = document.getElementById('returnDate');
+        const lateInfo = document.getElementById('late-info');
+        const money = v => new Intl.NumberFormat('vi-VN').format(v) + ' đ';
+
+        // Cùng công thức với FineCalculationService: (ngày trễ - ngày ân hạn) x số cuốn trả x phí/ngày, giới hạn mức trần mỗi dòng.
+        const lateDays = () => {
+            if (!returnDate.value) return 0;
+            const d = new Date(returnDate.value + 'T00:00:00');
+            return Math.max(0, Math.round((d - dueDate) / 86400000));
+        };
+
+        const recalc = () => {
+            const late = lateDays();
+            const chargeable = Math.max(0, late - grace);
+            lateInfo.className = 'px-3 pt-2 small ' + (late > 0 ? 'text-danger' : 'text-success');
+            lateInfo.textContent = late > 0
+                ? `Trễ ${late} ngày` + (grace > 0 ? ` (tính phí ${chargeable} ngày sau khi trừ ${grace} ngày ân hạn)` : '')
+                : 'Trả đúng hạn — không phát sinh phí phạt';
+            let total = 0;
+            form.querySelectorAll('.return-row').forEach(row => {
+                const qty = parseInt(row.querySelector('.return-qty').value || '0', 10) || 0;
+                let fine = chargeable * daily * qty;
+                if (max !== null) {
+                    const charged = parseFloat(row.dataset.charged || '0');
+                    fine = Math.min(fine, Math.max(0, max - charged));
+                }
+                total += fine;
+                row.querySelector('.row-fine').textContent = money(fine);
+            });
+            document.getElementById('total-fine').textContent = money(total);
+        };
+
+        form.querySelectorAll('.fill-row').forEach(btn => btn.addEventListener('click', () => {
+            const row = btn.closest('.return-row');
+            row.querySelector('.return-qty').value = row.dataset.remaining;
+            recalc();
+        }));
+        document.getElementById('fill-all').addEventListener('click', () => {
+            form.querySelectorAll('.return-row').forEach(row => row.querySelector('.return-qty').value = row.dataset.remaining);
+            recalc();
+        });
+        form.addEventListener('input', recalc);
+        form.addEventListener('change', recalc);
+        recalc();
+    })();
+</script>
+</body>
+</html>

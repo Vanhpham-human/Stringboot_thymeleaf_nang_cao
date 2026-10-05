@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Chính sách phí phạt · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <h1>Chính sách phí phạt</h1>
+            <p class="subtitle">Tại một thời điểm chỉ có một chính sách được áp dụng cho các lần trả sách mới</p>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-7">
+            <div class="card mb-3" th:classappend="${activePolicy.fallback} ? 'border-warning-subtle'">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-lightning-charge text-warning me-2"></i>Đang áp dụng</span>
+                    <span th:if="${activePolicy.fallback}" class="badge text-bg-warning-soft">Mặc định từ application.yml</span>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3" th:text="${activePolicy.name}">Chính sách 2026</h5>
+                    <div class="row g-3 text-center">
+                        <div class="col-4">
+                            <div class="stat-label">Phí / ngày / cuốn</div>
+                            <div class="fs-5 fw-bold" th:text="${#numbers.formatDecimal(activePolicy.dailyFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">5.000 đ</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-label">Mức trần / dòng sách</div>
+                            <div class="fs-5 fw-bold"
+                                 th:text="${activePolicy.maxFineAmount != null} ? ${#numbers.formatDecimal(activePolicy.maxFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ' : 'Không giới hạn'">100.000 đ</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-label">Ngày ân hạn</div>
+                            <div class="fs-5 fw-bold" th:text="${activePolicy.graceDays} + ' ngày'">0 ngày</div>
+                        </div>
+                    </div>
+                    <p class="small text-body-secondary mt-3 mb-0">
+                        Công thức: phí = max(0, số ngày trễ − ngày ân hạn) × số cuốn trả × phí/ngày; mỗi dòng sách không vượt mức trần.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-clock-history me-2"></i>Lịch sử chính sách</div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" th:unless="${#lists.isEmpty(policies)}">
+                        <thead>
+                        <tr>
+                            <th>Tên</th>
+                            <th class="text-end">Phí/ngày</th>
+                            <th class="text-end">Mức trần</th>
+                            <th class="text-center">Ân hạn</th>
+                            <th>Tạo lúc</th>
+                            <th class="text-end"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p : ${policies}" th:classappend="${p.active} ? 'table-success'">
+                            <td>
+                                <div class="fw-semibold" th:text="${p.name}">Chính sách</div>
+                                <div class="cell-sub" th:if="${p.description}" th:text="${p.description}">Mô tả</div>
+                            </td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(p.dailyFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ'">5.000 đ</td>
+                            <td class="text-end"
+                                th:text="${p.maxFineAmount != null} ? ${#numbers.formatDecimal(p.maxFineAmount, 1, 'POINT', 0, 'COMMA')} + ' đ' : '—'">—</td>
+                            <td class="text-center" th:text="${p.graceDays}">0</td>
+                            <td class="text-nowrap" th:text="${p.createdAt != null} ? ${#temporals.format(p.createdAt, 'dd/MM/yyyy HH:mm')} : '—'"></td>
+                            <td class="text-end text-nowrap">
+                                <span th:if="${p.active}" class="badge text-bg-success-soft"><i class="bi bi-check2 me-1"></i>Đang áp dụng</span>
+                                <form th:unless="${p.active}" th:action="@{/fine-policies/{id}/activate(id=${p.id})}" method="post"
+                                      class="d-inline" th:data-confirm="|Chuyển sang áp dụng chính sách ${p.name}?|">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Áp dụng</button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <th:block th:if="${#lists.isEmpty(policies)}">
+                        <div th:replace="~{fragments/common :: empty('Chưa có chính sách nào, hệ thống đang dùng mức mặc định')}"></div>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-plus-circle me-2"></i>Tạo chính sách mới</div>
+                <div class="card-body p-4">
+                    <form th:object="${policyForm}" th:action="@{/fine-policies}" method="post" novalidate>
+                        <div th:replace="~{fragments/common :: globalErrors}"></div>
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label required">Tên chính sách</label>
+                            <input type="text" class="form-control" th:field="*{name}" th:errorclass="is-invalid"
+                                   maxlength="100" placeholder="VD: Chính sách 2027">
+                            <div class="invalid-feedback" th:errors="*{name}">Lỗi</div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label for="dailyFineAmount" class="form-label required">Phí / ngày / cuốn</label>
+                                <div class="input-group has-validation">
+                                    <input type="number" class="form-control" th:field="*{dailyFineAmount}" th:errorclass="is-invalid"
+                                           min="1" step="500">
+                                    <span class="input-group-text">đ</span>
+                                    <div class="invalid-feedback" th:errors="*{dailyFineAmount}">Lỗi</div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="maxFineAmount" class="form-label">Mức trần / dòng sách</label>
+                                <div class="input-group has-validation">
+                                    <input type="number" class="form-control" th:field="*{maxFineAmount}" th:errorclass="is-invalid"
+                                           min="1" step="1000" placeholder="Không giới hạn">
+                                    <span class="input-group-text">đ</span>
+                                    <div class="invalid-feedback" th:errors="*{maxFineAmount}">Lỗi</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="graceDays" class="form-label required">Số ngày ân hạn</label>
+                            <input type="number" class="form-control" th:field="*{graceDays}" th:errorclass="is-invalid" min="0" max="30">
+                            <div class="form-text">Số ngày trễ đầu tiên không tính phí (0 = tính phí ngay từ ngày trễ đầu tiên).</div>
+                            <div class="invalid-feedback" th:errors="*{graceDays}">Lỗi</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Mô tả</label>
+                            <textarea class="form-control" th:field="*{description}" th:errorclass="is-invalid" rows="2" maxlength="500"></textarea>
+                            <div class="invalid-feedback" th:errors="*{description}">Lỗi</div>
+                        </div>
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" th:field="*{activate}">
+                            <label class="form-check-label" th:for="${#ids.prev('activate')}">Áp dụng ngay (tắt chính sách hiện tại)</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Lưu chính sách</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{})}">
+<head>
+    <title>Thể loại sách · LibraryHub</title>
+</head>
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <h1>Thể loại sách</h1>
+            <p class="subtitle">Tên thể loại là duy nhất. Xóa thể loại là xóa mềm, có thể khôi phục.</p>
+        </div>
+        <a th:href="@{/categories/new}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Thêm thể loại</a>
+    </div>
+
+    <div class="card">
+        <form class="filter-bar row g-2 align-items-end" th:action="@{/categories}" method="get">
+            <div class="col-md-5">
+                <label class="form-label" for="keyword">Tìm kiếm</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="keyword" name="keyword" th:value="${keyword}" placeholder="Tên thể loại...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="active">Trạng thái</label>
+                <select class="form-select" id="active" name="active" data-auto-submit>
+                    <option value="">Tất cả</option>
+                    <option value="true" th:selected="${active == true}">Đang hoạt động</option>
+                    <option value="false" th:selected="${active == false}">Đã xóa (ngừng hoạt động)</option>
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                <a th:href="@{/categories}" class="btn btn-light">Xóa lọc</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover" th:if="${page.hasContent()}">
+                <thead>
+                <tr>
+                    <th><a th:replace="~{fragments/common :: sortLink('id', 'ID')}"></a></th>
+                    <th><a th:replace="~{fragments/common :: sortLink('name', 'Tên thể loại')}"></a></th>
+                    <th>Mô tả</th>
+                    <th class="text-center">Số đầu sách</th>
+                    <th>Trạng thái</th>
+                    <th><a th:replace="~{fragments/common :: sortLink('createdAt', 'Ngày tạo')}"></a></th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${page.content}" th:classappend="${!c.active} ? 'opacity-75'">
+                    <td class="text-body-secondary" th:text="${c.id}">1</td>
+                    <td>
+                        <a th:href="@{/books(categoryId=${c.id})}" class="cell-title" th:text="${c.name}">Tên</a>
+                    </td>
+                    <td class="text-body-secondary" th:text="${c.description} ?: '—'">Mô tả</td>
+                    <td class="text-center"><span class="badge text-bg-primary-soft" th:text="${c.bookCount}">5</span></td>
+                    <td>
+                        <span th:if="${c.active}" class="badge rounded-pill text-bg-success-soft">Hoạt động</span>
+                        <span th:unless="${c.active}" class="badge rounded-pill text-bg-secondary-soft">Đã xóa</span>
+                    </td>
+                    <td th:text="${#temporals.format(c.createdAt, 'dd/MM/yyyy')}"></td>
+                    <td class="text-end text-nowrap">
+                        <a th:href="@{/categories/{id}/edit(id=${c.id})}" class="btn btn-sm btn-light" title="Sửa">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form th:if="${c.active}" th:action="@{/categories/{id}/delete(id=${c.id})}" method="post" class="d-inline"
+                              th:data-confirm="|Xóa mềm thể loại ${c.name}? Thể loại sẽ không còn được chọn khi thêm sách mới.|">
+                            <button type="submit" class="btn btn-sm btn-light text-danger" title="Xóa mềm"><i class="bi bi-trash"></i></button>
+                        </form>
+                        <form th:unless="${c.active}" th:action="@{/categories/{id}/restore(id=${c.id})}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-light text-success" title="Khôi phục"><i class="bi bi-arrow-counterclockwise"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <th:block th:unless="${page.hasContent()}">
+                <div th:replace="~{fragments/common :: empty('Không tìm thấy thể loại nào')}"></div>
+            </th:block>
+        </div>
+        <div th:replace="~{fragments/common :: pagination(${page})}"></div>
+    </div>
+</main>
+</body>
+</html>
